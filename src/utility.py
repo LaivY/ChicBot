@@ -1,5 +1,4 @@
 import asyncio
-
 import discord
 from discord.ext import commands
 
@@ -12,7 +11,7 @@ async def get_selection_from_list(
         description: str,
         footer: str,
         get_embed_field_value,
-        wait_for_timeout: float) -> any:
+        wait_for_timeout: int) -> any:
     if not items:
         return
     if len(items) > 6:
@@ -63,14 +62,6 @@ async def get_selection_from_list(
         await message.delete()
 
 
-def is_chicbot_channel(channel):
-    if channel.topic is None:
-        return False
-    if '#시크봇' in channel.topic:
-        return True
-    return False
-
-
 def getSkillLevelingInfo(reinforceSkill):
     result = {}
     for i in reinforceSkill:
@@ -92,53 +83,8 @@ def getSkillLevelingInfo(reinforceSkill):
     return result
 
 
-def getDailyReward():
-    """
-    확률  금액        누적
-    1%  : 0         : 1%
-    1%  : 100,000   : 2%
-    4%  : 200,000   : 6%
-    8%  : 300,000   : 14%
-    16% : 400,000   : 30%
-    20% : 500,000   : 50%
-    20% : 600,000   : 70%
-    16% : 700,000   : 86%
-    8%  : 800,000   : 94%
-    4%  : 900,000   : 98%
-    1%  : 1,000,000 : 99%
-    1%  : 2,000,000 : 100%
-    """
-
-    import random
-    seed = int(random.random() * 100)
-    if 0 <= seed < 1:
-        return 0
-    elif 1 <= seed < 2:
-        return 100000
-    elif 2 <= seed < 6:
-        return 200000
-    elif 6 <= seed < 14:
-        return 300000
-    elif 14 <= seed < 30:
-        return 400000
-    elif 30 <= seed < 50:
-        return 500000
-    elif 50 <= seed < 70:
-        return 600000
-    elif 70 <= seed < 86:
-        return 700000
-    elif 86 <= seed < 94:
-        return 800000
-    elif 94 <= seed < 98:
-        return 900000
-    elif 98 <= seed < 99:
-        return 1000000
-    else:
-        return 2000000
-
-
-def getVolatility(prev, latest):
-    if prev is None or prev == 0 or latest is None:
+def get_volatility(prev: int, latest: int) -> str:
+    if prev == 0 or latest == 0:
         return None
 
     percentage = ((latest / prev) - 1) * 100

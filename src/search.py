@@ -1,6 +1,7 @@
 import discord.ext.commands
-
-import dnfapi, utility
+import dnfapi
+import utility
+from database import database
 
 
 async def grade(interaction: discord.Interaction):
@@ -39,52 +40,67 @@ async def grade(interaction: discord.Interaction):
 
 
 async def character(bot: discord.ext.commands.Bot, interaction: discord.Interaction, server: str, name: str):
-    def get_character_equipment_info_embed(character_name: str, eChrEquipInfo, eChrStatInfo):
-        eEmbed = discord.Embed(title=f"{character_name}님의 아이템 정보를 알려드릴게요.")
+    def get_character_equipment_info_embed(
+            character_name_: str,
+            character_equip_info_: dict,
+            character_status_info_: dict) -> discord.Embed:
+        character_equipment_info_embed = discord.Embed(title=f"{character_name_}님의 아이템 정보를 알려드릴게요.")
 
-        for eItemInfo in eChrEquipInfo['equipment']:
-            if eItemInfo['slotName'] in ['칭호', '보조무기']:
+        # 강화, 재련, 마법부여
+        for equip_info in character_equip_info_['equipment']:
+            if equip_info['slotName'] in ['칭호', '보조무기']:
                 continue
 
-            equipEmbedValue = ''
-            if eItemInfo['reinforce'] != 0:
-                equipEmbedValue += f"+{eItemInfo['reinforce']}"
-            if eItemInfo['refine'] != 0:
-                equipEmbedValue += f"({eItemInfo['refine']})"
-            equipEmbedValue += f" {eItemInfo['itemName']}\n"
+            value_ = ''
+            if equip_info['reinforce'] > 0:
+                value_ += f"+{equip_info['reinforce']}"
+            if equip_info['refine'] > 0:
+                value_ += f"({equip_info['refine']})"
+            value_ += f" {equip_info['itemName']}\n"
 
-            if eItemInfo.get('enchant') is not None:
-                if eItemInfo['enchant'].get('status') is not None:
-                    for eEnchant in eItemInfo['enchant']['status']:
-                        equipEmbedValue += f"{eEnchant['name']} +{eEnchant['value']}\n"
-                if eItemInfo['enchant'].get('explain') is not None:
-                    equipEmbedValue += eItemInfo['enchant']['explain']
+            if equip_info.get('enchant') is not None:
+                if equip_info['enchant'].get('status') is not None:
+                    for eEnchant in equip_info['enchant']['status']:
+                        value_ += f"{eEnchant['name']} +{eEnchant['value']}\n"
+                if equip_info['enchant'].get('explain') is not None:
+                    value_ += equip_info['enchant']['explain']
 
-            eEmbed.add_field(name=f"> {eItemInfo['slotName']}", value=equipEmbedValue)
+            character_equipment_info_embed.add_field(name=f"> {equip_info['slotName']}", value=value_)
 
         # 스탯
         stats = {
             '모험가 명성': 0,
-            '힘': 0, '지능': 0, '체력': 0, '정신력': 0,
-            '물리 공격': 0, '마법 공격': 0, '독립 공격': 0,
-            '물리 크리티컬': 0, '마법 크리티컬': 0,
-            '화속성 강화': 0, '수속성 강화': 0, '명속성 강화': 0, '암속성 강화': 0,
-            '화속성 저항': 0, '수속성 저항': 0, '명속성 저항': 0, '암속성 저항': 0,
+            '힘': 0,
+            '지능': 0,
+            '체력': 0,
+            '정신력': 0,
+            '물리 공격': 0,
+            '마법 공격': 0,
+            '독립 공격': 0,
+            '물리 크리티컬': 0,
+            '마법 크리티컬': 0,
+            '화속성 강화': 0,
+            '수속성 강화': 0,
+            '명속성 강화': 0,
+            '암속성 강화': 0,
+            '화속성 저항': 0,
+            '수속성 저항': 0,
+            '명속성 저항': 0,
+            '암속성 저항': 0,
         }
-        for i in eChrStatInfo['status']:
+        for i in character_status_info_['status']:
             if i['name'] in stats:
                 stats[i['name']] = i['value']
 
-        eValue = f"모험가 명성 : {format(stats['모험가 명성'], ',')}\n"
-        eValue += f"힘 : {stats['힘']} | 지능 : {stats['지능']} | 체력 : {stats['체력']} | 정신력 : {stats['정신력']}\n"
-        eValue += f"물리공격 : {stats['물리 공격']} | 마법공격 : {stats['마법 공격']} | 독립 공격 : {stats['독립 공격']}\n"
-        eValue += f"물리크리티컬 : {stats['물리 크리티컬']}% | 마법크리티컬 : {stats['마법 크리티컬']}%\n"
-        eValue += f"속성강화 : 화({stats['화속성 강화']})/수({stats['수속성 강화']})/명({stats['명속성 강화']})/암({stats['암속성 강화']})\n"
-        eValue += f"속성저항 : 화({stats['화속성 저항']})/수({stats['수속성 저항']})/명({stats['명속성 저항']})/암({stats['암속성 저항']})"
-        eEmbed.add_field(name='> 스탯', value=eValue, inline=False)
-        eEmbed.set_footer(text='1페이지 / 2페이지')
-
-        return eEmbed
+        value = f"모험가 명성 : {stats['모험가 명성']: ','}\n" \
+                f"힘 : {stats['힘']} | 지능 : {stats['지능']} | 체력 : {stats['체력']} | 정신력 : {stats['정신력']}\n" \
+                f"물리공격 : {stats['물리 공격']} | 마법공격 : {stats['마법 공격']} | 독립 공격 : {stats['독립 공격']}\n" \
+                f"물리크리티컬 : {stats['물리 크리티컬']}% | 마법크리티컬 : {stats['마법 크리티컬']}%\n" \
+                f"속성강화 : 화({stats['화속성 강화']})/수({stats['수속성 강화']})/명({stats['명속성 강화']})/암({stats['암속성 강화']})\n" \
+                f"속성저항 : 화({stats['화속성 저항']})/수({stats['수속성 저항']})/명({stats['명속성 저항']})/암({stats['암속성 저항']})"
+        character_equipment_info_embed.add_field(name='> 스탯', value=value, inline=False)
+        character_equipment_info_embed.set_footer(text='1페이지 / 2페이지')
+        return character_equipment_info_embed
 
     def get_character_avatar_info_embed(eServer, eChrId, eChrName, eAvatar):
         eEmbed = discord.Embed(title=f"{eChrName}님의 캐릭터 정보를 알려드릴게요.")
@@ -93,7 +109,7 @@ async def character(bot: discord.ext.commands.Bot, interaction: discord.Interact
             if avatar['clone']['itemName'] is not None:
                 eValue += f"{avatar['clone']['itemName']}"
             eEmbed.add_field(name=f"> {avatar['slotName']}", value=eValue)
-        eEmbed.set_image(url=dnfapi.getChrImageUrl(eServer, eChrId))
+        eEmbed.set_image(url=dnfapi.get_character_image_url(eServer, eChrId))
         eEmbed.set_footer(text='2페이지 / 2페이지')
         return eEmbed
 
@@ -103,7 +119,7 @@ async def character(bot: discord.ext.commands.Bot, interaction: discord.Interact
         value += f"직업 : {element['jobGrowName']}"
         return value
 
-    character = await utility.get_selection_from_list(
+    character_info = await utility.get_selection_from_list(
         bot=bot,
         interaction=interaction,
         items=dnfapi.get_character_info(server, name),
@@ -114,18 +130,18 @@ async def character(bot: discord.ext.commands.Bot, interaction: discord.Interact
         wait_for_timeout=15)
     message = await interaction.original_response()
 
-    if character is None:
+    if character_info is None:
         await message.edit(content='오류가 발생했어요. 다시 시도해주세요.', embed=None)
         return
 
-    server_id = character['serverId']
-    character_id = character['characterId']
-    character_name = character['characterName']
-    equipment = dnfapi.get_character_equipment(server_id, character_id)
-    status = dnfapi.get_character_status(server_id, character_id)
-    avatar = dnfapi.get_character_avatar(server_id, character_id)
-    equipment_info_embed = get_character_equipment_info_embed(character_name, equipment, status)
-    avatar_info_embed = get_character_avatar_info_embed(server_id, character_id, character_name, avatar)
+    server_id = character_info['serverId']
+    character_id = character_info['characterId']
+    character_name = character_info['characterName']
+    equipment_info = dnfapi.get_character_equipment_info(server_id, character_id)
+    status_info = dnfapi.get_character_status_info(server_id, character_id)
+    avatar_info = dnfapi.get_character_avatar_info(server_id, character_id)
+    equipment_info_embed = get_character_equipment_info_embed(character_name, equipment_info, status_info)
+    avatar_info_embed = get_character_avatar_info_embed(server_id, character_id, character_name, avatar_info)
 
     await message.edit(content=None, embed=equipment_info_embed)
     await message.add_reaction('▶️')
@@ -134,10 +150,10 @@ async def character(bot: discord.ext.commands.Bot, interaction: discord.Interact
     # 1 : 아바타
     page = 0
     while True:
-        def check(reaction, user):
-            return reaction.message.id == message.id and \
-                   interaction.user.id == user.id and \
-                   str(reaction) in ['◀️', '▶️']
+        def check(reaction_: discord.Reaction, user_: discord.User):
+            return reaction_.message.id == message.id and \
+                   interaction.user.id == user_.id and \
+                   str(reaction_) in ['◀️', '▶️']
 
         reaction, user = await bot.wait_for('reaction_add', check=check)
 
@@ -161,56 +177,84 @@ async def character(bot: discord.ext.commands.Bot, interaction: discord.Interact
         if page < 1: await message.add_reaction('▶️')
 
 
-async def 시세(ctx, *inputs):
-    def getMarketPriceEmbed(eItemName):
-        eAuction = dnfapi.getItemAuction(eItemName)
-        eEmbed = discord.Embed(title=f"'{eItemName}' 시세를 알려드릴게요")
+async def item_market_price(bot: discord.ext.commands.Bot, interaction: discord.Interaction, name: str):
+    def get_market_price_embed(item_name: str) -> discord.Embed or None:
+        market_price_embed = discord.Embed(title=f"'{item_name}' 시세를 알려드릴게요")
+        item_auction_info = dnfapi.get_auction_item_sold_info(item_name)
 
-        if eItemName.endswith('카드'):
+        # 판매 데이터가 없을 경우
+        if not item_auction_info:
+            return None
+
+        if item_name.endswith('카드'):
             statistic = {}
-            for i in eAuction:
+            for i in item_auction_info:
                 statistic.setdefault(i['upgrade'], [0, 0, 0])
                 statistic[i['upgrade']][0] += i['price']  # 총 가격
                 statistic[i['upgrade']][1] += i['count']  # 총 판매량
             statistic = dict(sorted(statistic.items()))
 
+            # 카드 업그레이드 수치 마다 따로 표기
             for i in statistic:
-                avgPrice = statistic[i][0] // statistic[i][1]  # 평균값 계산
-                c.updateAuctionPrice(f"{eItemName} +{i}", avgPrice)  # 가격 최신화
-                prevPrice = c.getPrevPrice(f"{eItemName} +{i}")  # 최근 가격 불러오기
+                average_price = statistic[i][0] // statistic[i][1]
+                database.update_auction_item_price(f"{item_name} +{i}", average_price)
+                prev_price_info = database.get_auction_second_latest_item_info(f"{item_name} +{i}")
 
-                eEmbed.add_field(name=f"> +{i} 평균 가격", value=f"{format(avgPrice, ',')}골드")
-                eEmbed.add_field(name='> 최근 판매량', value=f"{format(statistic[i][1], ',')}개")
-                eValue = f"{utility.getVolatility(prevPrice['price'], avgPrice)} ({prevPrice['date'].strftime('%Y-%m-%d')})" if prevPrice is not None else '데이터 없음'
-                eEmbed.add_field(name='> 가격 변동률', value=eValue)
+                value = '데이터 없음'
+                if prev_price_info is not None:
+                    value = f"{utility.get_volatility(prev_price_info['price'], average_price)}" \
+                            f"({prev_price_info['date'].strftime('%Y-%m-%d')})"
+
+                market_price_embed.add_field(name=f"> +{i} 평균 가격", value=f"{average_price: ,}골드")
+                market_price_embed.add_field(name='> 최근 판매량', value=f"{statistic[i][1]: ,}개")
+                market_price_embed.add_field(name='> 가격 변동률', value=value)
         else:
-            eSum, eCount = 0, 0
-            for i in eAuction:
-                eSum += i['price']
-                eCount += i['count']
-            ePrice = eSum // eCount  # 평균값 계산
-            c.updateAuctionPrice(eItemName, ePrice)  # 가격 최신화
-            prevPrice = c.getPrevPrice(eItemName)  # 최근 가격 불러오기
+            itme_price_sum, item_sold_count = 0, 0
+            for i in item_auction_info:
+                itme_price_sum += i['price']
+                item_sold_count += i['count']
+            average_price = itme_price_sum // item_sold_count
+            database.update_auction_item_price(item_name, average_price)
+            prev_price_info = database.get_auction_second_latest_item_info(item_name)
 
-            eEmbed.add_field(name='> 평균 가격', value=format(ePrice, ',') + '골드')
-            eEmbed.add_field(name='> 최근 판매량', value=format(eCount, ',') + '개')
-            eValue = f"{utility.getVolatility(prevPrice['price'], ePrice)} ({prevPrice['date'].strftime('%Y-%m-%d')})" if prevPrice is not None else '데이터 없음'
-            eEmbed.add_field(name='> 가격 변동률', value=eValue)
-        eEmbed.set_footer(text=eAuction[-1]['soldDate'] + ' 부터 ' + eAuction[0]['soldDate'] + ' 까지 집계된 자료예요.')
-        eEmbed.set_thumbnail(url=dnfapi.getItemImageUrl(eAuction[0]['itemId']))
-        return eEmbed
+            value = '데이터 없음'
+            if prev_price_info is not None:
+                value = f"{utility.get_volatility(prev_price_info['price'], average_price)}" \
+                        f"({prev_price_info['date'].strftime('%Y-%m-%d')})"
 
-    await ctx.message.delete()
-    message = await ctx.channel.send('> 아이템 시세 정보를 불러오고 있어요...')
+            market_price_embed.add_field(name='> 평균 가격', value=f"{average_price: ,}골드")
+            market_price_embed.add_field(name='> 최근 판매량', value=f"{item_sold_count: ,}개")
+            market_price_embed.add_field(name='> 가격 변동률', value=value)
 
-    item = dnfapi.getSimilarItemInfo(' '.join(inputs))
-    if item is None:
-        await message.delete()
-        await ctx.channel.send('> 해당 아이템의 판매 정보를 얻어오지 못했어요.')
+        market_price_embed.set_footer(text=f"{item_auction_info[-1]['soldDate']} 부터"
+                                           f"{item_auction_info[0]['soldDate']} 까지 집계된 자료예요.")
+        market_price_embed.set_thumbnail(url=dnfapi.get_item_image_url(item_auction_info[0]['itemId']))
+        return market_price_embed
+
+    def get_embed_field_value(element):
+        return element['itemName']
+
+    item_info = await utility.get_selection_from_list(
+        bot=bot,
+        interaction=interaction,
+        items=dnfapi.get_item_info(name),
+        title='원하는 아이템 번호의 이모지를 눌러주세요.',
+        description='15초 안에 입력하지 않으면 자동으로 취소되요.',
+        footer='',
+        get_embed_field_value=get_embed_field_value,
+        wait_for_timeout=15)
+    message = await interaction.original_response()
+
+    if item_info is None:
+        await message.edit(content='> 해당 아이템의 정보를 얻어오지 못했어요.', embed=None)
         return
 
-    embed = getMarketPriceEmbed(item['itemName'])
-    await message.edit(embed=embed, content=None)
+    embed = get_market_price_embed(item_info['itemName'])
+    if embed is None:
+        await message.edit(content='> 해당 아이템의 정보를 얻어오지 못했어요.', embed=None)
+        return
+
+    await message.edit(content=None, embed=embed)
 
 
 async def 장비(bot, ctx, *inputs):
@@ -269,7 +313,7 @@ async def 장비(bot, ctx, *inputs):
             pass
 
         # 아이콘
-        eEmbed.set_thumbnail(url=dnfapi.getItemImageUrl(eItemInfo['itemId']))
+        eEmbed.set_thumbnail(url=dnfapi.get_item_image_url(eItemInfo['itemId']))
 
         return eEmbed
 
@@ -321,7 +365,7 @@ async def 장비(bot, ctx, *inputs):
             pass
 
         # 아이콘
-        eEmbed.set_thumbnail(url=dnfapi.getItemImageUrl(eItemInfo['itemId']))
+        eEmbed.set_thumbnail(url=dnfapi.get_item_image_url(eItemInfo['itemId']))
 
         return eEmbed
 
@@ -346,7 +390,7 @@ async def 장비(bot, ctx, *inputs):
     item = await utility.get_selection_from_list(
         bot,
         ctx,
-        items=dnfapi.searchItem(itemName),
+        items=dnfapi.get_equip_item_info(itemName),
         title='원하는 장비 아이템의 번호를 입력해주세요.',
         description='15초 안에 입력하지 않으면 자동으로 취소되요.',
         footer=None,
@@ -359,7 +403,7 @@ async def 장비(bot, ctx, *inputs):
         return
 
     message = await ctx.channel.send(f"> 해당 장비의 정보를 불러오고 있어요...")
-    itemInfo = dnfapi.getItemDetailInfo(item['itemId'])
+    itemInfo = dnfapi.get_item_detail_info(item['itemId'])
     embed = getItemInfoEmbed(itemInfo)
     await message.edit(embed=embed, content=None)
     await message.add_reaction('▶️')
@@ -409,7 +453,7 @@ async def 세트(bot, ctx, *inputs):
             except:
                 pass
             eEmbed.add_field(name=f"> {i['optionNo']}세트 옵션", value=f"{value}{i['explain']}", inline=False)
-        eEmbed.set_thumbnail(url=dnfapi.getItemImageUrl(eSetItemInfo['setItems'][0]['itemId']))
+        eEmbed.set_thumbnail(url=dnfapi.get_item_image_url(eSetItemInfo['setItems'][0]['itemId']))
         return eEmbed
 
     def getSetItemBuffInfoEmbed(eSetItemInfo):
@@ -431,7 +475,7 @@ async def 세트(bot, ctx, *inputs):
             value += i['itemBuff']['explain']
             eEmbed.add_field(name=f"> {i['optionNo']}세트 옵션", value=value, inline=False)
 
-        eEmbed.set_thumbnail(url=dnfapi.getItemImageUrl(eSetItemInfo['setItems'][0]['itemId']))
+        eEmbed.set_thumbnail(url=dnfapi.get_item_image_url(eSetItemInfo['setItems'][0]['itemId']))
         return eEmbed
 
     # 세트템 이름 유효성 확인
@@ -452,7 +496,7 @@ async def 세트(bot, ctx, *inputs):
     setItem = await utility.get_selection_from_list(
         bot=bot,
         interaction=ctx,
-        items=dnfapi.searchSetItem(setName),
+        items=dnfapi.get_set_item_info(setName),
         title='원하는 세트 옵션의 번호를 입력해주세요.',
         description='15초 안에 입력하지 않으면 자동으로 취소되요.',
         footer=None,
@@ -465,7 +509,7 @@ async def 세트(bot, ctx, *inputs):
         return
 
     message = await ctx.channel.send(f"> 해당 세트의 정보를 불러오고 있어요...")
-    setItemInfo = dnfapi.getSetItemInfo(setItem['setItemId'])
+    setItemInfo = dnfapi.get_set_item_detail_info(setItem['setItemId'])
     embed = getSetItemInfoEmbed(setItemInfo)
     await message.edit(embed=embed, content=None)
     await message.add_reaction('▶️')
