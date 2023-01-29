@@ -92,7 +92,7 @@ async def character(bot: discord.ext.commands.Bot, interaction: discord.Interact
             if i['name'] in stats:
                 stats[i['name']] = i['value']
 
-        value = f"모험가 명성 : {stats['모험가 명성']: ','}\n" \
+        value = f"모험가 명성 : {stats['모험가 명성']: ,}\n" \
                 f"힘 : {stats['힘']} | 지능 : {stats['지능']} | 체력 : {stats['체력']} | 정신력 : {stats['정신력']}\n" \
                 f"물리공격 : {stats['물리 공격']} | 마법공격 : {stats['마법 공격']} | 독립 공격 : {stats['독립 공격']}\n" \
                 f"물리크리티컬 : {stats['물리 크리티컬']}% | 마법크리티컬 : {stats['마법 크리티컬']}%\n" \
@@ -243,11 +243,12 @@ async def item_market_price(bot: discord.ext.commands.Bot, interaction: discord.
         footer='',
         get_embed_field_value=get_embed_field_value,
         wait_for_timeout=15)
-    message = await interaction.original_response()
 
     if item_info is None:
-        await message.edit(content='> 해당 아이템의 정보를 얻어오지 못했어요.', embed=None)
+        await interaction.response.send_message(content='> 해당 아이템의 정보를 얻어오지 못했어요.', embed=None)
         return
+
+    message = await interaction.original_response()
 
     embed = get_market_price_embed(item_info['itemName'])
     if embed is None:

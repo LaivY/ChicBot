@@ -85,7 +85,7 @@ def getSkillLevelingInfo(reinforceSkill):
 
 def get_volatility(prev: int, latest: int) -> str:
     if prev == 0 or latest == 0:
-        return None
+        return ''
 
     percentage = ((latest / prev) - 1) * 100
     if percentage > 0:

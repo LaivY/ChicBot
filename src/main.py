@@ -15,6 +15,11 @@ async def on_ready():
     print('구동 완료')
 
 
+@bot.tree.command(name='도움말', description='시크봇 사용법을 알려드려요.')
+async def instruction(interaction: discord.Interaction):
+    await interaction.response.send_message(content="이제 슬래시('/')를 입력하면 어떤 명령어가 있는지 확인할 수 있어요.")
+
+
 @bot.tree.command(name='등급', description='오늘의 등급을 알려드려요.')
 async def grade(interaction: discord.Interaction):
     await search.grade(interaction)
@@ -36,4 +41,5 @@ async def item_market_price(interaction: discord.Interaction, 아이템: str):
     await search.item_market_price(bot, interaction, 아이템)
 
 
-bot.run(setting['DISCORD_BOT_TOKEN'])
+if __name__ == "__main__":
+    bot.run(setting['DISCORD_BOT_TOKEN'])
